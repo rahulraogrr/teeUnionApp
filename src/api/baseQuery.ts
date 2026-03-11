@@ -6,8 +6,8 @@ import { Platform } from 'react-native';
 
 const DEV_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 const BASE_URL = __DEV__
-  ? `http://${DEV_HOST}:3000/api/v1`  // Android emulator or iOS simulator
-  : 'https://api.tee-union.in/api/v1'; // Production URL
+  ? `http://${DEV_HOST}:3000/api/v1` // Android emulator or iOS simulator
+  : 'https://tee-union-api-production.up.railway.app/api/v1'; // Production URL
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
