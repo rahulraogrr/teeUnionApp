@@ -2,8 +2,11 @@ import { fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@re
 import { tokenStorage } from '../utils/storage';
 import { logout } from '../store/slices/authSlice';
 
+import { Platform } from 'react-native';
+
+const DEV_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 const BASE_URL = __DEV__
-  ? 'http://10.0.2.2:3000/api/v1'   // Android emulator → localhost
+  ? `http://${DEV_HOST}:3000/api/v1`  // Android emulator or iOS simulator
   : 'https://api.tee-union.in/api/v1'; // Production URL
 
 const rawBaseQuery = fetchBaseQuery({

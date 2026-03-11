@@ -14,11 +14,9 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'  # ← HERE
+config = use_native_modules!
 
 target 'teeUnionApp' do
-  config = use_native_modules!
-
   use_react_native!(
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/.."
@@ -37,10 +35,256 @@ post_install do |installer|
     :mac_catalyst_enabled => false,
   )
 
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['CLANG_WARN_COMMA'] = 'NO'
-      config.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
+  # Fix glog for Xcode 26 — write config.h and headers directly so we don't
+  # rely on the prepare_command cache. CocoaPods only re-runs prepare_command
+  # when the pod version changes; this hook always runs.
+  glog_pod_root = File.join(installer.sandbox.root, 'glog')
+  if Dir.exist?(glog_pod_root)
+    require 'fileutils'
+    glog_src       = File.join(glog_pod_root, 'src')
+    glog_include   = File.join(glog_src, 'glog')
+    exported_glog  = File.join(glog_pod_root, 'exported', 'glog')
+    FileUtils.mkdir_p(exported_glog)
+
+    # Write config.h — chmod all glog files writable first to handle read-only prepare_command output
+    Dir.glob(File.join(glog_pod_root, '**', '*.h')) { |f| FileUtils.chmod(0644, f) rescue nil }
+    Dir.glob(File.join(glog_pod_root, '**', '*.cc')) { |f| FileUtils.chmod(0644, f) rescue nil }
+
+    config_h_path = File.join(glog_src, 'config.h')
+    FileUtils.rm_f(config_h_path)
+    File.write(config_h_path, <<~CONFIG_H)
+      #define GOOGLE_GLOG_DLL_DECL
+      #define GOOGLE_NAMESPACE google
+      #define HAVE_DLFCN_H 1
+      #define HAVE_INTTYPES_H 1
+      #define HAVE_LIBPTHREAD 1
+      #define HAVE_PTHREAD 1
+      #define HAVE_MEMORY_H 1
+      #define HAVE_PREAD 1
+      #define HAVE_PWRITE 1
+      #define HAVE_STDINT_H 1
+      #define HAVE_STDLIB_H 1
+      #define HAVE_STRINGS_H 1
+      #define HAVE_STRING_H 1
+      #define HAVE_SYS_STAT_H 1
+      #define HAVE_SYS_TIME_H 1
+      #define HAVE_SYS_TYPES_H 1
+      #define HAVE_UNISTD_H 1
+      #define HAVE_USING_OPERATOR 1
+      #define HAVE___ATTRIBUTE__ 1
+      #define PACKAGE "glog"
+      #define PACKAGE_NAME "Google glog"
+      #define PACKAGE_STRING "Google glog 0.3.5"
+      #define PACKAGE_TARNAME "glog"
+      #define PACKAGE_URL ""
+      #define PACKAGE_VERSION "0.3.5"
+      #define STL_NAMESPACE std
+      #define VERSION "0.3.5"
+      #define _END_GOOGLE_NAMESPACE_ }
+      #define _START_GOOGLE_NAMESPACE_ namespace google {
+      #ifdef __APPLE__
+      #include <TargetConditionals.h>
+      #include <Availability.h>
+      #endif
+      #undef HAVE_UCONTEXT_H
+      #undef PC_FROM_UCONTEXT
+      #if defined(__x86_64__)
+      #define PC_FROM_UCONTEXT uc_mcontext->__ss.__rip
+      #elif defined(__i386__)
+      #define PC_FROM_UCONTEXT uc_mcontext->__ss.__eip
+      #endif
+    CONFIG_H
+
+    # Generate logging.h from logging.h.in — always overwrite
+    # NOTE: catch-all replaces unknown @tokens@ with 0 to avoid invalid #if directives
+    logging_h_in  = File.join(glog_include, 'logging.h.in')
+    logging_h_out = File.join(glog_include, 'logging.h')
+    if File.exist?(logging_h_in)
+      content = File.read(logging_h_in)
+        # Boolean/feature flags (used in #if conditions)
+        .gsub('@ac_cv_have_libgflags@', '0')
+        .gsub('@ac_cv_have_uint16_t@', '1')
+        .gsub('@ac_cv_have_u_int16_t@', '0')
+        .gsub('@ac_cv_have___uint16@', '0')
+        .gsub('@ac_cv___builtin_expect@', '1')
+        .gsub('@ac_cv_have_unistd_h@', '1')
+        # Namespace tokens (used in actual code — MUST NOT become 0)
+        .gsub('@GOOGLE_NAMESPACE@', 'google')
+        .gsub('@_START_GOOGLE_NAMESPACE_@', 'namespace google {')
+        .gsub('@_END_GOOGLE_NAMESPACE_@', '}')
+        .gsub('@ac_google_start_namespace@', 'namespace google {')
+        .gsub('@ac_google_end_namespace@', '}')
+        .gsub('@ac_google_namespace@', 'google')
+        # Declaration specifiers (used in declarations — MUST NOT become 0)
+        .gsub('@GOOGLE_GLOG_DLL_DECL@', '')
+        .gsub('@ac_cv___attribute___noinline@', '')
+        .gsub('@ac_cv___attribute___noreturn@', '__attribute__((noreturn))')
+        # Catch-all: remaining @tokens@ in #if conditions → 0
+        .gsub(/@[a-zA-Z_][a-zA-Z0-9_]*@/, '0')
+      FileUtils.rm_f(logging_h_out)
+      File.write(logging_h_out, content)
+    end
+
+    # Generate vlog_is_on.h — from template if present, else write directly
+    vlog_h_in  = File.join(glog_include, 'vlog_is_on.h.in')
+    vlog_h_out = File.join(glog_include, 'vlog_is_on.h')
+    FileUtils.rm_f(vlog_h_out)
+    if File.exist?(vlog_h_in)
+      content = File.read(vlog_h_in)
+        .gsub('@GOOGLE_NAMESPACE@', 'google')
+        .gsub('@_START_GOOGLE_NAMESPACE_@', 'namespace google {')
+        .gsub('@_END_GOOGLE_NAMESPACE_@', '}')
+        .gsub(/@[a-zA-Z_][a-zA-Z0-9_]*@/, '0')
+      File.write(vlog_h_out, content)
+    else
+      File.write(vlog_h_out, <<~VLOG_H)
+        // Copyright (c) 2010, Google Inc.
+        // NOTE: This file is included inside "namespace google {}" in logging.h,
+        // so InitVLOG3__ is declared WITHOUT a namespace wrapper here — it
+        // automatically becomes google::InitVLOG3__ from the enclosing block.
+        #ifndef GLOG_VLOG_IS_ON_H
+        #define GLOG_VLOG_IS_ON_H
+        #if defined(__GNUC__)
+        #define VLOG_IS_ON(verboselevel) \
+          __extension__  \
+          ({ static google::int32* vlocal__ = &google::kLogSiteUninitialized;  \
+             google::int32 verbose__ = *vlocal__;                               \
+             (verbose__ >= (verboselevel)) ?                                    \
+               (true) :                                                         \
+               ((vlocal__ != &google::kLogSiteUninitialized) ?                  \
+                (false) :                                                       \
+                google::InitVLOG3__(&vlocal__, &FLAGS_v,                        \
+                                   __FILE__, (verboselevel)));                  \
+          })
+        #else
+        #define VLOG_IS_ON(verboselevel) (FLAGS_v >= (verboselevel))
+        #endif
+        // No namespace google {} wrapper: this file is included inside
+        // namespace google { } in logging.h, so all declarations here
+        // are automatically in the google namespace.
+        extern GOOGLE_GLOG_DLL_DECL int32 kLogSiteUninitialized;
+        extern GOOGLE_GLOG_DLL_DECL bool InitVLOG3__(
+            google::int32** site_flag, google::int32* site_default,
+            const char* fname, google::int32 verbose_level);
+        #endif  // GLOG_VLOG_IS_ON_H
+      VLOG_H
+    end  # vlog_is_on.h
+
+    # Write raw_logging.h — not present in glog 0.3.5 git checkout; write it directly
+    raw_h_out = File.join(glog_include, 'raw_logging.h')
+    FileUtils.rm_f(raw_h_out)
+    File.write(raw_h_out, <<~RAW_H)
+      // Copyright (c) 2006, Google Inc.
+      // Raw logging — a logging facility that does not allocate memory or use
+      // mutexes, so it is safe to use from low-level signal handlers and the like.
+      #ifndef GLOG_RAW_LOGGING_H_
+      #define GLOG_RAW_LOGGING_H_
+
+      #include <time.h>
+      #include "config.h"
+      #include "glog/log_severity.h"
+
+      // Stub: platform-portable printf-format attribute
+      #ifdef __GNUC__
+      # define GLOG_PRINTF_ATTRIBUTE(fmt_index, arg_index) \
+            __attribute__((__format__(__printf__, fmt_index, arg_index)))
+      #else
+      # define GLOG_PRINTF_ATTRIBUTE(fmt_index, arg_index)
+      #endif
+
+      _START_GOOGLE_NAMESPACE_
+
+      // Low-level logging support used by RAW_LOG() and friends.
+      // Internal: do not use directly.
+      GOOGLE_GLOG_DLL_DECL void RawLog__(LogSeverity severity,
+                                         const char* file,
+                                         int line,
+                                         const char* fmt, ...)
+          GLOG_PRINTF_ATTRIBUTE(4, 5);
+
+      // Update internal time cache used by raw logging (called from logging.cc).
+      GOOGLE_GLOG_DLL_DECL void RawLog__SetLastTime(const struct ::tm& t, int usecs);
+
+      _END_GOOGLE_NAMESPACE_
+
+      // RAW_LOG: always-on raw log at a given severity.
+      // Usage: RAW_LOG(INFO, "format %s", arg)
+      #define RAW_LOG(severity, ...) \
+        do { \
+          google::RawLog__(google::GLOG_ ## severity, __FILE__, __LINE__, __VA_ARGS__); \
+        } while (0)
+
+      // RAW_VLOG: verbose raw log (only logs if FLAGS_v >= verboselevel).
+      // We use a simple macro that evaluates the condition inline; no mutex needed.
+      #define RAW_VLOG(verboselevel, ...) \
+        do { \
+          if (VLOG_IS_ON(verboselevel)) { \
+            google::RawLog__(google::GLOG_INFO, __FILE__, __LINE__, __VA_ARGS__); \
+          } \
+        } while (0)
+
+      // RAW_CHECK: like CHECK but uses raw logging (safe in signal handlers).
+      #define RAW_CHECK(condition, message) \
+        do { \
+          if (!(condition)) { \
+            google::RawLog__(google::GLOG_FATAL, __FILE__, __LINE__, \
+                             "Check failed: " #condition " " message); \
+          } \
+        } while (0)
+
+      // RAW_DCHECK: debug-only RAW_CHECK.
+      #ifdef NDEBUG
+      # define RAW_DCHECK(condition, message)
+      #else
+      # define RAW_DCHECK(condition, message) RAW_CHECK(condition, message)
+      #endif
+
+      #endif  // GLOG_RAW_LOGGING_H_
+    RAW_H
+
+    # Write stl_logging.h — not present in glog 0.3.5 git checkout; write a minimal stub
+    stl_h_out = File.join(glog_include, 'stl_logging.h')
+    FileUtils.rm_f(stl_h_out)
+    File.write(stl_h_out, <<~STL_H)
+      // Copyright (c) 2003, Google Inc.
+      // Logging support for STL containers — minimal stub for build compatibility.
+      #ifndef GLOG_STL_LOGGING_H_
+      #define GLOG_STL_LOGGING_H_
+      // STL container streaming operators are defined in logging.h when built
+      // with full glog.  This stub satisfies include-graph requirements.
+      #endif  // GLOG_STL_LOGGING_H_
+    STL_H
+
+    # Copy all glog headers to exported/glog
+    # Remove destination first in case it's read-only from a previous prepare_command run
+    %w[log_severity.h logging.h raw_logging.h stl_logging.h vlog_is_on.h].each do |hdr|
+      src_hdr = File.join(glog_include, hdr)
+      if File.exist?(src_hdr)
+        dst_hdr = File.join(exported_glog, hdr)
+        FileUtils.rm_f(dst_hdr)
+        FileUtils.cp(src_hdr, dst_hdr)
+      end
+    end
+
+    # Patch utilities.cc: SYS_gettid doesn't exist on modern iOS/macOS.
+    # Remove "|| defined OS_MACOSX" so macOS skips the gettid block entirely
+    # and falls through to the pthread_self() fallback on line ~273.
+    utils_cc = File.join(glog_src, 'utilities.cc')
+    if File.exist?(utils_cc)
+      FileUtils.chmod(0644, utils_cc)
+      patched = File.read(utils_cc)
+        .gsub('#if defined OS_LINUX || defined OS_MACOSX', '#if defined OS_LINUX')
+      File.write(utils_cc, patched)
+    end
+
+    Pod::UI.puts "✅ glog config.h and headers written for Xcode 26 compatibility"
+  end
+
+  installer.pods_project.targets.each do |tgt|
+    tgt.build_configurations.each do |bc|
+      bc.build_settings['CLANG_WARN_COMMA'] = 'NO'
+      bc.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
+      bc.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
     end
   end
 end
