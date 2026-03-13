@@ -10,24 +10,19 @@ import { TicketsStackParamList } from '../../../navigation/types';
 import { useCreateTicketMutation } from '../../../api/ticketsApi';
 import Toast from 'react-native-toast-message';
 
+// Backend: title @MinLength(10), categoryId @IsOptional @IsUUID, priority optional
 const schema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(200),
-  description: z.string().min(20, 'Please describe the issue in detail (min 20 chars)'),
+  title: z.string().min(10, 'Title must be at least 10 characters').max(200),
+  description: z.string().min(20, 'Please describe the issue in detail (min 20 chars)').optional().or(z.literal('')),
   priority: z.enum(['standard', 'urgent', 'critical']),
-  categoryId: z.string().min(1, 'Please select a category'),
+  // Category is optional — stored as a display label only until categories API is wired up
+  categoryLabel: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 type NavProp = NativeStackNavigationProp<TicketsStackParamList, 'CreateTicket'>;
 
-// Hardcoded for now — could be loaded from API
-const CATEGORIES = [
-  { id: 'cat-1', label: 'Salary' },
-  { id: 'cat-2', label: 'Provident Fund' },
-  { id: 'cat-3', label: 'Transfer' },
-  { id: 'cat-4', label: 'Medical' },
-  { id: 'cat-5', label: 'Other' },
-];
+const CATEGORY_LABELS = ['Salary', 'Provident Fund', 'Transfer', 'Medical', 'Other'];
 
 export default function CreateTicketScreen() {
   const theme = useTheme();
@@ -36,16 +31,25 @@ export default function CreateTicketScreen() {
 
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { priority: 'standard', categoryId: '' },
+    defaultValues: { priority: 'standard', categoryLabel: undefined },
   });
 
   const onSubmit = async (data: FormData) => {
     try {
-      await createTicket(data).unwrap();
+      // categoryId omitted — backend field is optional; will wire up once categories API exists
+      await createTicket({
+        title: data.title,
+        description: data.description || undefined,
+        priority: data.priority,
+      }).unwrap();
       Toast.show({ type: 'success', text1: 'Ticket raised successfully!' });
       navigation.goBack();
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: 'Failed to raise ticket', text2: err?.data?.message });
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to raise ticket',
+        text2: err?.data?.message ?? 'Please try again',
+      });
     }
   };
 
@@ -61,16 +65,31 @@ export default function CreateTicketScreen() {
 
         {/* Title */}
         <Controller control={control} name="title" render={({ field: { onChange, value } }) => (
-          <TextInput label="Title *" value={value} onChangeText={onChange} mode="outlined"
-            placeholder="Brief summary of the issue" error={!!errors.title} style={styles.input} />
+          <TextInput
+            label="Title *"
+            value={value}
+            onChangeText={onChange}
+            mode="outlined"
+            placeholder="Brief summary of the issue (min 10 chars)"
+            error={!!errors.title}
+            style={styles.input}
+          />
         )} />
         <HelperText type="error" visible={!!errors.title}>{errors.title?.message}</HelperText>
 
         {/* Description */}
         <Controller control={control} name="description" render={({ field: { onChange, value } }) => (
-          <TextInput label="Description *" value={value} onChangeText={onChange} mode="outlined"
-            multiline numberOfLines={5} placeholder="Describe the issue in detail..."
-            error={!!errors.description} style={styles.input} />
+          <TextInput
+            label="Description"
+            value={value}
+            onChangeText={onChange}
+            mode="outlined"
+            multiline
+            numberOfLines={6}
+            placeholder="Describe the issue in detail..."
+            error={!!errors.description}
+            style={styles.textarea}
+          />
         )} />
         <HelperText type="error" visible={!!errors.description}>{errors.description?.message}</HelperText>
 
@@ -91,24 +110,34 @@ export default function CreateTicketScreen() {
           />
         )} />
 
-        {/* Category */}
+        {/* Category (display label only — not sent to API until categories endpoint exists) */}
         <Text variant="bodySmall" style={[styles.fieldLabel, { color: theme.colors.onSurfaceVariant }]}>
-          Category *
+          Category
         </Text>
-        <Controller control={control} name="categoryId" render={({ field: { onChange, value } }) => (
+        <Controller control={control} name="categoryLabel" render={({ field: { onChange, value } }) => (
           <View style={styles.categoryGrid}>
-            {CATEGORIES.map((cat) => (
-              <Button key={cat.id} mode={value === cat.id ? 'contained' : 'outlined'}
-                onPress={() => onChange(cat.id)} compact style={styles.catBtn}>
-                {cat.label}
+            {CATEGORY_LABELS.map((label) => (
+              <Button
+                key={label}
+                mode={value === label ? 'contained' : 'outlined'}
+                onPress={() => onChange(value === label ? undefined : label)}
+                compact
+                style={styles.catBtn}
+              >
+                {label}
               </Button>
             ))}
           </View>
         )} />
-        <HelperText type="error" visible={!!errors.categoryId}>{errors.categoryId?.message}</HelperText>
 
-        <Button mode="contained" onPress={handleSubmit(onSubmit)} loading={isLoading}
-          disabled={isLoading} style={styles.submitBtn} contentStyle={styles.submitContent}>
+        <Button
+          mode="contained"
+          onPress={handleSubmit(onSubmit)}
+          loading={isLoading}
+          disabled={isLoading}
+          style={styles.submitBtn}
+          contentStyle={styles.submitContent}
+        >
           Raise Ticket
         </Button>
       </ScrollView>
@@ -120,6 +149,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 16, paddingBottom: 40 },
   input: { marginBottom: 2 },
+  textarea: { marginBottom: 2, minHeight: 120 },
   fieldLabel: { marginBottom: 8, marginTop: 12 },
   segmented: { marginBottom: 8 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },

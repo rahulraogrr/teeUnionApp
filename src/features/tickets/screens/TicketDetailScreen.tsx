@@ -17,7 +17,7 @@ export default function TicketDetailScreen() {
   const [addComment, { isLoading: adding }] = useAddCommentMutation();
 
   const statusColors: Record<string, string> = {
-    OPEN: '#1565C0', IN_PROGRESS: '#E65100', ESCALATED: '#6A1B9A', RESOLVED: '#757575', CLOSED: '#757575',
+    open: '#1565C0', in_progress: '#E65100', escalated: '#6A1B9A', resolved: '#757575', closed: '#757575',
   };
 
   const handleAddComment = async () => {
@@ -39,7 +39,8 @@ export default function TicketDetailScreen() {
       {/* Status header */}
       <View style={[styles.statusHeader, { backgroundColor: statusColors[ticket.status] ?? '#ccc' }]}>
         <Text style={styles.statusText}>
-          {ticket.status === 'RESOLVED' ? 'Closed' : ticket.status.replace('_', ' ')}
+          {ticket.status === 'resolved' ? 'Closed'
+            : ticket.status.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
         </Text>
         <Text style={styles.ticketId}>#{ticket.id.slice(-8).toUpperCase()}</Text>
       </View>
@@ -90,7 +91,7 @@ export default function TicketDetailScreen() {
         ))}
 
         {/* Add comment */}
-        {ticket.status !== 'CLOSED' && ticket.status !== 'RESOLVED' && (
+        {ticket.status !== 'closed' && ticket.status !== 'resolved' && (
           <View style={styles.addComment}>
             <TextInput
               label="Add a comment"

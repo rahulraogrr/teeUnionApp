@@ -14,15 +14,15 @@ type RouteParams = RouteProp<TicketsStackParamList, 'TicketsList'>;
 // RESOLVED is not shown as a separate filter — it displays as "Closed"
 const STATUS_FILTERS = ['ALL', 'OPEN', 'IN_PROGRESS', 'ESCALATED', 'CLOSED'];
 
-// Map backend status → display label (RESOLVED shown as Closed to member)
+// API returns lowercase status values (open, in_progress, escalated, resolved, closed)
 const STATUS_DISPLAY: Record<string, string> = {
-  OPEN: 'Open', IN_PROGRESS: 'In Progress', ESCALATED: 'Escalated',
-  RESOLVED: 'Closed', CLOSED: 'Closed',
+  open: 'Open', in_progress: 'In Progress', escalated: 'Escalated',
+  resolved: 'Closed', closed: 'Closed',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: '#1565C0', IN_PROGRESS: '#E65100', ESCALATED: '#6A1B9A',
-  RESOLVED: '#757575', CLOSED: '#757575',
+  open: '#1565C0', in_progress: '#E65100', escalated: '#6A1B9A',
+  resolved: '#757575', closed: '#757575',
 };
 
 export default function TicketsListScreen() {
@@ -93,23 +93,25 @@ export default function TicketsListScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Status filter chips */}
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={STATUS_FILTERS}
-        keyExtractor={(s) => s}
-        contentContainerStyle={styles.filterList}
-        renderItem={({ item }) => (
-          <Chip
-            selected={selectedStatus === item}
-            onPress={() => { setSelectedStatus(item); setPage(1); }}
-            style={styles.filterChip}
-            compact
-          >
-            {item === 'ALL' ? 'All' : item.replace('_', ' ')}
-          </Chip>
-        )}
-      />
+      <View style={styles.filterRow}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={STATUS_FILTERS}
+          keyExtractor={(s) => s}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => (
+            <Chip
+              selected={selectedStatus === item}
+              onPress={() => { setSelectedStatus(item); setPage(1); }}
+              style={styles.filterChip}
+              compact
+            >
+              {item === 'ALL' ? 'All' : item.replace('_', ' ')}
+            </Chip>
+          )}
+        />
+      </View>
 
       {isLoading ? (
         <ActivityIndicator style={{ marginTop: 48 }} />
@@ -145,7 +147,8 @@ export default function TicketsListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  filterList: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  filterRow: { height: 56 },
+  filterList: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, alignItems: 'center' },
   filterChip: { marginRight: 4 },
   list: { padding: 12, gap: 10, paddingBottom: 80 },
   ticketCard: { borderRadius: 12, flexDirection: 'row', overflow: 'hidden', elevation: 1 },

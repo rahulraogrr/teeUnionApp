@@ -26,7 +26,7 @@ export default function HomeScreen() {
   const { data: news } = useGetNewsQuery({ limit: 2, page: 1 });
   const { data: events } = useGetEventsQuery({ limit: 2, page: 1 });
 
-  const openTickets = tickets?.data.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length ?? 0;
+  const openTickets = tickets?.data.filter(t => t.status === 'open' || t.status === 'in_progress').length ?? 0;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}

@@ -8,14 +8,18 @@ export const ticketsApi = createApi({
   tagTypes: ['Ticket'],
   endpoints: (builder) => ({
     getTickets: builder.query<PaginatedResponse<Ticket>, { page?: number; limit?: number; status?: string }>({
-      query: (params) => ({ url: '/tickets', params }),
+      // Prisma enum is lowercase (open, in_progress…) — normalise before sending
+      query: ({ status, ...rest }) => ({
+        url: '/tickets',
+        params: { ...rest, ...(status ? { status: status.toLowerCase() } : {}) },
+      }),
       providesTags: ['Ticket'],
     }),
     getTicketById: builder.query<Ticket, string>({
       query: (id) => `/tickets/${id}`,
       providesTags: (_r, _e, id) => [{ type: 'Ticket', id }],
     }),
-    createTicket: builder.mutation<Ticket, { title: string; description: string; categoryId: string; priority: string }>({
+    createTicket: builder.mutation<Ticket, { title: string; description?: string; categoryId?: string; priority?: string }>({
       query: (body) => ({ url: '/tickets', method: 'POST', body }),
       invalidatesTags: ['Ticket'],
     }),
