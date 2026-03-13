@@ -38,7 +38,9 @@ export default function HomeScreen() {
         <View style={[styles.headerTop, { backgroundColor: theme.colors.primary }]}>
           {/* Union badge strip */}
           <View style={styles.unionBadge}>
-            <Text style={styles.unionBadgeText}>TEE 1104' UNION</Text>
+            <Text style={styles.unionBadgeText}>
+              {profile?.union?.shortName ?? 'TEE 1104\' UNION'}
+            </Text>
           </View>
 
           <View style={styles.headerRow}>

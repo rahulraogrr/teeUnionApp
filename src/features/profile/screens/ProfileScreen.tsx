@@ -5,9 +5,14 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from '../../../navigation/types';
-import { useGetMyProfileQuery, useGetTelegramStatusQuery, useUnlinkTelegramMutation, useGetTelegramLinkTokenQuery } from '../../../api/membersApi';
+import { membersApi, useGetMyProfileQuery, useGetTelegramStatusQuery, useUnlinkTelegramMutation, useGetTelegramLinkTokenQuery } from '../../../api/membersApi';
 import { useAppDispatch } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
+import { authApi } from '../../../api/authApi';
+import { ticketsApi } from '../../../api/ticketsApi';
+import { newsApi } from '../../../api/newsApi';
+import { eventsApi } from '../../../api/eventsApi';
+import { notificationsApi } from '../../../api/notificationsApi';
 import { tokenStorage } from '../../../utils/storage';
 import Toast from 'react-native-toast-message';
 
@@ -24,6 +29,13 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     tokenStorage.clearAll();
+    // Reset all RTK Query caches so stale data isn't shown after re-login
+    dispatch(membersApi.util.resetApiState());
+    dispatch(authApi.util.resetApiState());
+    dispatch(ticketsApi.util.resetApiState());
+    dispatch(newsApi.util.resetApiState());
+    dispatch(eventsApi.util.resetApiState());
+    dispatch(notificationsApi.util.resetApiState());
     dispatch(logout());
   };
 

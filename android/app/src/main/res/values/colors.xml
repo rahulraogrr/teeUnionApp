@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TEE 1104 Union primary red -->
+    <color name="union_primary">#C62828</color>
+    <color name="union_primary_dark">#8E0000</color>
+    <color name="union_navy">#1A237E</color>
+    <color name="white">#FFFFFF</color>
+</resources>

@@ -10,7 +10,7 @@ import Toast from 'react-native-toast-message';
 
 const schema = z.object({
   mobileNo: z.string().regex(/^\+91\d{10}$/, 'Enter valid mobile: +91XXXXXXXXXX').optional().or(z.literal('')),
-  maritalStatus: z.enum(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED']).optional(),
+  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -68,10 +68,10 @@ export default function EditProfileScreen() {
             value={value ?? ''}
             onValueChange={onChange}
             buttons={[
-              { value: 'SINGLE', label: 'Single' },
-              { value: 'MARRIED', label: 'Married' },
-              { value: 'DIVORCED', label: 'Divorced' },
-              { value: 'WIDOWED', label: 'Widowed' },
+              { value: 'single', label: 'Single' },
+              { value: 'married', label: 'Married' },
+              { value: 'divorced', label: 'Divorced' },
+              { value: 'widowed', label: 'Widowed' },
             ]}
           />
         )} />
