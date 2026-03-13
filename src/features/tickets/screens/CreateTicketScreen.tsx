@@ -13,7 +13,7 @@ import Toast from 'react-native-toast-message';
 const schema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(200),
   description: z.string().min(20, 'Please describe the issue in detail (min 20 chars)'),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  priority: z.enum(['standard', 'urgent', 'critical']),
   categoryId: z.string().min(1, 'Please select a category'),
 });
 
@@ -36,7 +36,7 @@ export default function CreateTicketScreen() {
 
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { priority: 'MEDIUM', categoryId: '' },
+    defaultValues: { priority: 'standard', categoryId: '' },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -83,10 +83,9 @@ export default function CreateTicketScreen() {
             value={value}
             onValueChange={onChange}
             buttons={[
-              { value: 'LOW', label: 'Low' },
-              { value: 'MEDIUM', label: 'Medium' },
-              { value: 'HIGH', label: 'High' },
-              { value: 'CRITICAL', label: 'Critical' },
+              { value: 'standard', label: 'Standard' },
+              { value: 'urgent',   label: 'Urgent' },
+              { value: 'critical', label: 'Critical' },
             ]}
             style={styles.segmented}
           />

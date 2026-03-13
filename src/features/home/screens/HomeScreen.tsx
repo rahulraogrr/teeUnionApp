@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Card, useTheme, Avatar, Badge, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, useTheme, Badge } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -64,24 +64,24 @@ export default function HomeScreen() {
 
         {/* Navy stats strip */}
         <View style={[styles.statsStrip, { backgroundColor: theme.colors.secondary }]}>
-          <StatChip icon="ticket-outline" label="Open Tickets" value={String(openTickets)} theme={theme} />
+          <StatChip icon="ticket-outline" label="Open Tickets" value={String(openTickets)} />
           <View style={styles.statDivider} />
-          <StatChip icon="bell-badge-outline" label="Unread" value={String(unread?.count ?? 0)} theme={theme} />
+          <StatChip icon="bell-badge-outline" label="Unread" value={String(unread?.count ?? 0)} />
           <View style={styles.statDivider} />
-          <StatChip icon="account-check" label="Member" value="Active" theme={theme} />
+          <StatChip icon="account-check" label="Member" value="Active" />
         </View>
       </View>
 
-      {/* Quick Actions */}
-      <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-        Quick Actions
-      </Text>
-      <View style={styles.actionsGrid}>
-        <QuickAction icon="ticket-outline" label="Raise Ticket" color="#C62828" onPress={() => {}} />
-        <QuickAction icon="newspaper" label="Latest News" color="#1A237E" onPress={() => {}} />
-        <QuickAction icon="calendar-month" label="Events" color="#C62828" onPress={() => {}} />
-        <QuickAction icon="account-settings" label="My Profile" color="#1A237E" onPress={() => {}} />
-      </View>
+      {/* Raise Ticket CTA */}
+      <TouchableOpacity
+        style={[styles.raiseTicketBtn, { backgroundColor: theme.colors.primary }]}
+        onPress={() => navigation.getParent()?.navigate('TicketsTab', { screen: 'CreateTicket' })}
+        activeOpacity={0.85}
+      >
+        <Icon name="ticket-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
+        <Text style={styles.raiseTicketText}>Raise a Ticket</Text>
+        <Icon name="chevron-right" size={20} color="rgba(255,255,255,0.7)" style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
 
       {/* Recent Tickets */}
       {(tickets?.data.length ?? 0) > 0 && (
@@ -170,24 +170,13 @@ export default function HomeScreen() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function StatChip({ icon, label, value, theme }: any) {
+function StatChip({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <View style={styles.statChip}>
       <Icon name={icon} size={20} color="rgba(255,255,255,0.9)" />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
-  );
-}
-
-function QuickAction({ icon, label, color, onPress }: any) {
-  return (
-    <TouchableOpacity onPress={onPress} style={[styles.quickAction, { borderColor: color + '30' }]}>
-      <View style={[styles.qaIcon, { backgroundColor: color + '15' }]}>
-        <Icon name={icon} size={28} color={color} />
-      </View>
-      <Text variant="bodySmall" style={{ fontWeight: '600', textAlign: 'center', marginTop: 6 }}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -231,10 +220,19 @@ const styles = StyleSheet.create({
   statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
   statValue: { color: '#fff', fontWeight: '700', fontSize: 18, marginTop: 4 },
   statLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 10, marginTop: 2, textAlign: 'center' },
+  // Raise Ticket CTA
+  raiseTicketBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    elevation: 3,
+  },
+  raiseTicketText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   sectionTitle: { fontWeight: '700', marginHorizontal: 16, marginTop: 8, marginBottom: 12 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 8, marginBottom: 8 },
-  quickAction: { width: '47%', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, backgroundColor: '#fff', elevation: 1 },
-  qaIcon: { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   card: { marginHorizontal: 16, marginBottom: 10, borderRadius: 12 },
   ticketRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   ticketLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },

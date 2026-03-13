@@ -24,7 +24,8 @@ export type HomeStackParamList = {
 
 // ─── Tickets Stack ───────────────────────────────────────────────────────────
 export type TicketsStackParamList = {
-  TicketsList: undefined;
+  TicketsHome: undefined;
+  TicketsList: { initialStatus?: string } | undefined;
   TicketDetail: { ticketId: string };
   CreateTicket: undefined;
 };

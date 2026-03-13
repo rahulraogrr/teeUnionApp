@@ -17,7 +17,7 @@ export default function TicketDetailScreen() {
   const [addComment, { isLoading: adding }] = useAddCommentMutation();
 
   const statusColors: Record<string, string> = {
-    OPEN: '#1565C0', IN_PROGRESS: '#FF6F00', RESOLVED: '#2E7D32', CLOSED: '#757575',
+    OPEN: '#1565C0', IN_PROGRESS: '#E65100', ESCALATED: '#6A1B9A', RESOLVED: '#757575', CLOSED: '#757575',
   };
 
   const handleAddComment = async () => {
@@ -38,7 +38,9 @@ export default function TicketDetailScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Status header */}
       <View style={[styles.statusHeader, { backgroundColor: statusColors[ticket.status] ?? '#ccc' }]}>
-        <Text style={styles.statusText}>{ticket.status.replace('_', ' ')}</Text>
+        <Text style={styles.statusText}>
+          {ticket.status === 'RESOLVED' ? 'Closed' : ticket.status.replace('_', ' ')}
+        </Text>
         <Text style={styles.ticketId}>#{ticket.id.slice(-8).toUpperCase()}</Text>
       </View>
 
@@ -50,7 +52,7 @@ export default function TicketDetailScreen() {
         {/* Meta */}
         <View style={styles.metaRow}>
           <MetaBadge label="Priority" value={ticket.priority} color={
-            ({ LOW: '#4CAF50', MEDIUM: '#FF9800', HIGH: '#F44336', CRITICAL: '#B71C1C' })[ticket.priority] ?? '#ccc'
+            ({ standard: '#4CAF50', urgent: '#FF9800', critical: '#B71C1C' })[ticket.priority] ?? '#ccc'
           } />
           {ticket.category && <MetaBadge label="Category" value={ticket.category.name} color={theme.colors.primary} />}
           <MetaBadge label="Created" value={dayjs(ticket.createdAt).format('DD MMM')} color={theme.colors.secondary} />
@@ -88,7 +90,7 @@ export default function TicketDetailScreen() {
         ))}
 
         {/* Add comment */}
-        {ticket.status !== 'CLOSED' && (
+        {ticket.status !== 'CLOSED' && ticket.status !== 'RESOLVED' && (
           <View style={styles.addComment}>
             <TextInput
               label="Add a comment"

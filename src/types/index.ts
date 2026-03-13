@@ -31,8 +31,8 @@ export interface Member {
 }
 
 // ─── Ticket ──────────────────────────────────────────────────────────────────
-export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type TicketPriority = 'standard' | 'urgent' | 'critical';
+export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'ESCALATED' | 'RESOLVED' | 'CLOSED';
 
 export interface Ticket {
   id: string;
