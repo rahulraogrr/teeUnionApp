@@ -14,7 +14,7 @@ import { setCredentials } from './store/slices/authSlice';
 import { initialiseSentry } from './utils/sentry';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Initialise crash reporting as early as possible
+// Initialize crash reporting as early as possible
 initialiseSentry();
 
 // Bootstrap: rehydrate auth state from MMKV on cold start

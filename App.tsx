@@ -1,4 +1,4 @@
 /**
- * TEE Union 1104 – React Native App entry point
+ * TEE 1104' Union – React Native App entry point
  */
 export { default } from './src/App';
