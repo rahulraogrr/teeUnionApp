@@ -5,16 +5,15 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TicketsStackParamList } from '../../../navigation/types';
 import { useGetTicketsQuery } from '../../../api/ticketsApi';
+import { useResponsive } from '../../../hooks/useResponsive';
 import { Ticket } from '../../../types';
 import dayjs from 'dayjs';
 
 type NavProp     = NativeStackNavigationProp<TicketsStackParamList, 'TicketsList'>;
 type RouteParams = RouteProp<TicketsStackParamList, 'TicketsList'>;
 
-// RESOLVED is not shown as a separate filter — it displays as "Closed"
 const STATUS_FILTERS = ['ALL', 'OPEN', 'IN_PROGRESS', 'ESCALATED', 'CLOSED'];
 
-// API returns lowercase status values (open, in_progress, escalated, resolved, closed)
 const STATUS_DISPLAY: Record<string, string> = {
   open: 'Open', in_progress: 'In Progress', escalated: 'Escalated',
   resolved: 'Closed', closed: 'Closed',
@@ -29,22 +28,19 @@ export default function TicketsListScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteParams>();
+  const { isTablet, twoColCards, contentWidth, hPad } = useResponsive();
 
   const [selectedStatus, setSelectedStatus] = useState(route.params?.initialStatus ?? 'ALL');
   const [page, setPage] = useState(1);
 
-  // When member selects "CLOSED", also fetch RESOLVED tickets (same concept to them)
   const apiStatus = selectedStatus === 'ALL' ? undefined : selectedStatus;
-
   const { data, isLoading } = useGetTicketsQuery({ page, limit: 20, status: apiStatus });
 
-  // Extra query for RESOLVED when CLOSED is selected — combined below
   const { data: resolvedData } = useGetTicketsQuery(
     { page, limit: 20, status: 'RESOLVED' },
     { skip: selectedStatus !== 'CLOSED' },
   );
 
-  // Merge CLOSED + RESOLVED when CLOSED filter is active
   const tickets = selectedStatus === 'CLOSED'
     ? [...(data?.data ?? []), ...(resolvedData?.data ?? [])]
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -54,10 +50,17 @@ export default function TicketsListScreen() {
     standard: '#4CAF50', urgent: '#FF9800', critical: '#B71C1C',
   };
 
-  const renderTicket = ({ item }: { item: Ticket }) => {
+  const cols = twoColCards ? 2 : 1;
+
+  const renderTicket = ({ item, index }: { item: Ticket; index: number }) => {
     const statusColor = STATUS_COLORS[item.status] ?? '#ccc';
+    // On 2-col grid, add right margin to left column cards
+    const isLeftCol = twoColCards && index % 2 === 0;
     return (
-      <TouchableOpacity onPress={() => navigation.navigate('TicketDetail', { ticketId: item.id })}>
+      <TouchableOpacity
+        style={twoColCards ? styles.gridItemWrapper : styles.listItemWrapper}
+        onPress={() => navigation.navigate('TicketDetail', { ticketId: item.id })}
+      >
         <View style={[styles.ticketCard, { backgroundColor: theme.colors.surface }]}>
           <View style={[styles.statusBar, { backgroundColor: statusColor }]} />
           <View style={styles.ticketBody}>
@@ -92,14 +95,17 @@ export default function TicketsListScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Status filter chips */}
-      <View style={styles.filterRow}>
+      {/* Filter chips — centred on tablet */}
+      <View style={[styles.filterRow, isTablet && styles.filterRowTablet]}>
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           data={STATUS_FILTERS}
           keyExtractor={(s) => s}
-          contentContainerStyle={styles.filterList}
+          contentContainerStyle={[
+            styles.filterList,
+            isTablet && { paddingHorizontal: (contentWidth * 0.04) },
+          ]}
           renderItem={({ item }) => (
             <Chip
               selected={selectedStatus === item}
@@ -117,10 +123,16 @@ export default function TicketsListScreen() {
         <ActivityIndicator style={{ marginTop: 48 }} />
       ) : (
         <FlatList
+          key={cols}            // force remount when column count changes
           data={tickets}
           keyExtractor={(t) => t.id}
+          numColumns={cols}
           renderItem={renderTicket}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            isTablet && { paddingHorizontal: ((contentWidth * 0.04) / 2) + hPad },
+          ]}
+          columnWrapperStyle={twoColCards ? styles.columnWrapper : undefined}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -148,9 +160,13 @@ export default function TicketsListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   filterRow: { height: 56 },
+  filterRowTablet: { height: 64 },
   filterList: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, alignItems: 'center' },
   filterChip: { marginRight: 4 },
-  list: { padding: 12, gap: 10, paddingBottom: 80 },
+  list: { padding: 12, paddingBottom: 80 },
+  columnWrapper: { gap: 10, marginBottom: 10 },
+  listItemWrapper: { marginBottom: 10 },
+  gridItemWrapper: { flex: 1 },
   ticketCard: { borderRadius: 12, flexDirection: 'row', overflow: 'hidden', elevation: 1 },
   statusBar: { width: 5 },
   ticketBody: { flex: 1, padding: 12 },
@@ -159,5 +175,5 @@ const styles = StyleSheet.create({
   ticketFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   statusChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   empty: { alignItems: 'center', marginTop: 80 },
-  fab: { position: 'absolute', right: 16, bottom: 24 },
+  fab: { position: 'absolute', right: 24, bottom: 24 },
 });

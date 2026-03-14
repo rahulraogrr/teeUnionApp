@@ -86,6 +86,8 @@ export default function CreateTicketScreen() {
             mode="outlined"
             multiline
             numberOfLines={6}
+            blurOnSubmit={false}
+            returnKeyType="default"
             placeholder="Describe the issue in detail..."
             error={!!errors.description}
             style={styles.textarea}
