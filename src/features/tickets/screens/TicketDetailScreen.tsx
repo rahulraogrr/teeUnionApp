@@ -141,7 +141,7 @@ function CommentsPanel({
             mode="contained"
             onPress={onPost}
             loading={posting}
-            disabled={posting || !comment.trim()}
+            disabled={posting || comment.trim().length < 5}
           >
             Post Comment
           </Button>
@@ -168,9 +168,14 @@ export default function TicketDetailScreen() {
   };
 
   const handleAddComment = async () => {
-    if (!comment.trim()) return;
+    const trimmed = comment.trim();
+    if (!trimmed) return;
+    if (trimmed.length < 5) {
+      Toast.show({ type: 'error', text1: 'Comment too short', text2: 'Please enter at least 5 characters.' });
+      return;
+    }
     try {
-      await addComment({ ticketId: params.ticketId, comment: comment.trim() }).unwrap();
+      await addComment({ ticketId: params.ticketId, comment: trimmed }).unwrap();
       setComment('');
       Toast.show({ type: 'success', text1: 'Comment added' });
     } catch {

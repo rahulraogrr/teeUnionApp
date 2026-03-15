@@ -285,6 +285,23 @@ post_install do |installer|
       bc.build_settings['CLANG_WARN_COMMA'] = 'NO'
       bc.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
       bc.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+
+      # ── Build speed optimisations ──────────────────────────────────────────
+      # Disable Xcode source indexer — not needed during builds, saves significant time
+      bc.build_settings['COMPILER_INDEX_STORE_ENABLE'] = 'NO'
+      # Only build the active architecture in Debug (arm64 for M1 simulator — no fat binaries)
+      bc.build_settings['ONLY_ACTIVE_ARCH'] = 'YES' if bc.name == 'Debug'
+      # Skip dSYM generation for pods in Debug (app dSYM is still generated)
+      bc.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf' if bc.name == 'Debug'
+
+      # Use ccache if installed (brew install ccache)
+      # ccache caches compiled object files — subsequent builds of unchanged files are near-instant
+      if system('which ccache > /dev/null 2>&1')
+        bc.build_settings['CC']  = 'ccache clang'
+        bc.build_settings['CXX'] = 'ccache clang++'
+        bc.build_settings['LD']  = 'clang'
+        bc.build_settings['LDPLUSPLUS'] = 'clang++'
+      end
     end
   end
 end

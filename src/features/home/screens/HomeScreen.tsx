@@ -25,11 +25,13 @@ export default function HomeScreen() {
   const { data: profile } = useGetMyProfileQuery();
   // Fetch more tickets on tablet so the 2-col grid has content
   const { data: tickets } = useGetTicketsQuery({ limit: twoColCards ? 6 : 3, page: 1 });
+  // Fetch real open ticket count from API (not derived from the limited recent list)
+  const { data: openTicketsData } = useGetTicketsQuery({ limit: 1, page: 1, status: 'open' });
   const { data: unread } = useGetUnreadCountQuery();
   const { data: news } = useGetNewsQuery({ limit: twoColCards ? 4 : 2, page: 1 });
   const { data: events } = useGetEventsQuery({ limit: twoColCards ? 4 : 2, page: 1 });
 
-  const openTickets = tickets?.data.filter(t => t.status === 'open' || t.status === 'in_progress').length ?? 0;
+  const openTickets = openTicketsData?.total ?? 0;
 
   // Only use two-column layout when there's actually content for both columns
   const hasRightContent = (news?.data.length ?? 0) > 0 || (events?.data.length ?? 0) > 0;
