@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme, Chip, FAB, ActivityIndicator } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -25,6 +25,14 @@ const STATUS_COLORS: Record<string, string> = {
   resolved: '#757575', closed: '#757575',
 };
 
+// Keep outside component — stable reference, avoids re-creation on every render
+const PRIORITY_COLORS: Record<string, string> = {
+  standard: '#4CAF50', urgent: '#FF9800', critical: '#B71C1C',
+};
+
+// Estimated row height for getItemLayout (single-col)
+const ITEM_HEIGHT = 96;
+
 export default function TicketsListScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavProp>();
@@ -49,16 +57,14 @@ export default function TicketsListScreen() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     : (data?.data ?? []);
 
-  const priorityColors: Record<string, string> = {
-    standard: '#4CAF50', urgent: '#FF9800', critical: '#B71C1C',
-  };
-
   const cols = twoColCards ? 2 : 1;
 
-  const renderTicket = ({ item, index }: { item: Ticket; index: number }) => {
+  const handleEndReached = useCallback(() => {
+    if (data && page * 20 < data.total) setPage(p => p + 1);
+  }, [data, page]);
+
+  const renderTicket = useCallback(({ item, index }: { item: Ticket; index: number }) => {
     const statusColor = STATUS_COLORS[item.status] ?? '#ccc';
-    // On 2-col grid, add right margin to left column cards
-    const isLeftCol = twoColCards && index % 2 === 0;
     return (
       <TouchableOpacity
         style={twoColCards ? styles.gridItemWrapper : styles.listItemWrapper}
@@ -71,8 +77,8 @@ export default function TicketsListScreen() {
               <Text variant="bodyLarge" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
                 {item.title}
               </Text>
-              <View style={[styles.priorityBadge, { backgroundColor: (priorityColors[item.priority] ?? '#ccc') + '20' }]}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: priorityColors[item.priority] ?? '#ccc' }}>
+              <View style={[styles.priorityBadge, { backgroundColor: (PRIORITY_COLORS[item.priority] ?? '#ccc') + '20' }]}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: PRIORITY_COLORS[item.priority] ?? '#ccc' }}>
                   {item.priority}
                 </Text>
               </View>
@@ -94,7 +100,13 @@ export default function TicketsListScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [theme, navigation, twoColCards]);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -131,6 +143,10 @@ export default function TicketsListScreen() {
           keyExtractor={(t) => t.id}
           numColumns={cols}
           renderItem={renderTicket}
+          getItemLayout={twoColCards ? undefined : getItemLayout}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           contentContainerStyle={[
             styles.list,
             isTablet && { paddingHorizontal: ((contentWidth * 0.04) / 2) + hPad },
@@ -143,9 +159,7 @@ export default function TicketsListScreen() {
               </Text>
             </View>
           }
-          onEndReached={() => {
-            if (data && page * 20 < data.total) setPage(p => p + 1);
-          }}
+          onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
         />
       )}

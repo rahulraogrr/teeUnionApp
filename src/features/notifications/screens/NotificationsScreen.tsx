@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -15,16 +15,16 @@ export default function NotificationsScreen() {
   const { data, isLoading } = useGetNotificationsQuery({ limit: 50 });
   const [markAllRead, { isLoading: marking }] = useMarkAllReadMutation();
 
-  const handleMarkAll = async () => {
+  const handleMarkAll = useCallback(async () => {
     try {
       await markAllRead().unwrap();
       Toast.show({ type: 'success', text1: 'All notifications marked as read' });
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to update notifications' });
     }
-  };
+  }, [markAllRead]);
 
-  const renderItem = ({ item }: { item: AppNotification }) => (
+  const renderItem = useCallback(({ item }: { item: AppNotification }) => (
     <View style={[
       styles.notifCard,
       {
@@ -49,7 +49,7 @@ export default function NotificationsScreen() {
       </View>
       {!item.read && <View style={[styles.unreadDot, { backgroundColor: theme.colors.primary }]} />}
     </View>
-  );
+  ), [theme]);
 
   if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
 
@@ -74,6 +74,9 @@ export default function NotificationsScreen() {
         keyExtractor={(n) => n.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
+        initialNumToRender={15}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Icon name="bell-sleep-outline" size={56} color={theme.colors.onSurfaceVariant} />

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { TicketsStackParamList } from '../../../navigation/types';
-import { useGetTicketsQuery } from '../../../api/ticketsApi';
+import { useGetTicketCountsQuery } from '../../../api/ticketsApi';
 import { useAppSelector } from '../../../store';
 
 type NavProp = NativeStackNavigationProp<TicketsStackParamList, 'TicketsHome'>;
@@ -26,22 +26,24 @@ export default function TicketsHomeScreen() {
   const userRole = useAppSelector((s) => s.auth.user?.role ?? 'member');
   const isMember = userRole === 'member';
 
-  // One query per status (limit:1 — only need 'total')
-  const { data: openData,       isLoading: l1 } = useGetTicketsQuery({ page: 1, limit: 1, status: 'OPEN' });
-  const { data: inProgressData, isLoading: l2 } = useGetTicketsQuery({ page: 1, limit: 1, status: 'IN_PROGRESS' });
-  const { data: escalatedData,  isLoading: l3 } = useGetTicketsQuery({ page: 1, limit: 1, status: 'ESCALATED' });
-  const { data: closedData,     isLoading: l4 } = useGetTicketsQuery({ page: 1, limit: 1, status: 'CLOSED' });
-  const { data: resolvedData,   isLoading: l5 } = useGetTicketsQuery({ page: 1, limit: 1, status: 'RESOLVED' });
+  // Single API call instead of 5 separate calls
+  const { data: countsData, isLoading } = useGetTicketCountsQuery();
 
   // CLOSED count = truly-closed + resolved (merged from member's perspective)
   const counts: Record<TileKey, number> = {
-    OPEN:        openData?.total                                          ?? 0,
-    IN_PROGRESS: inProgressData?.total                                    ?? 0,
-    ESCALATED:   escalatedData?.total                                     ?? 0,
-    CLOSED:      (closedData?.total ?? 0) + (resolvedData?.total ?? 0),
+    OPEN:        countsData?.open        ?? 0,
+    IN_PROGRESS: countsData?.in_progress ?? 0,
+    ESCALATED:   countsData?.escalated   ?? 0,
+    CLOSED:      (countsData?.closed ?? 0) + (countsData?.resolved ?? 0),
   };
 
-  const isLoading = l1 || l2 || l3 || l4 || l5;
+  const handleTilePress = useCallback((key: TileKey) => {
+    navigation.navigate('TicketsList', { initialStatus: key });
+  }, [navigation]);
+
+  const handleRaiseTicket = useCallback(() => {
+    navigation.navigate('CreateTicket');
+  }, [navigation]);
 
   return (
     <ScrollView
@@ -54,7 +56,7 @@ export default function TicketsHomeScreen() {
           <TouchableOpacity
             key={tile.key}
             style={[styles.tile, { backgroundColor: theme.colors.surface, borderLeftColor: tile.color }]}
-            onPress={() => navigation.navigate('TicketsList', { initialStatus: tile.key })}
+            onPress={() => handleTilePress(tile.key)}
             activeOpacity={0.75}
           >
             <View style={[styles.tileIconWrap, { backgroundColor: tile.color + '15' }]}>
@@ -79,7 +81,7 @@ export default function TicketsHomeScreen() {
       {isMember && (
         <TouchableOpacity
           style={[styles.raiseBtn, { backgroundColor: theme.colors.primary }]}
-          onPress={() => navigation.navigate('CreateTicket')}
+          onPress={handleRaiseTicket}
           activeOpacity={0.85}
         >
           <Icon name="plus-circle-outline" size={22} color="#fff" style={{ marginRight: 10 }} />

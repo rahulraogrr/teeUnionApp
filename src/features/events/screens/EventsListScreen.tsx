@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -16,7 +16,7 @@ export default function EventsListScreen() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetEventsQuery({ page, limit: 20 });
 
-  const renderEvent = ({ item }: { item: UnionEvent }) => {
+  const renderEvent = useCallback(({ item }: { item: UnionEvent }) => {
     const isPast = dayjs(item.eventDate).isBefore(dayjs());
     return (
       <TouchableOpacity
@@ -67,7 +67,11 @@ export default function EventsListScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [theme, navigation]);
+
+  const handleEndReached = useCallback(() => {
+    if (data && page * 20 < data.total) setPage(p => p + 1);
+  }, [data, page]);
 
   if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
 
@@ -78,14 +82,15 @@ export default function EventsListScreen() {
       keyExtractor={(e) => e.id}
       renderItem={renderEvent}
       contentContainerStyle={styles.list}
+      initialNumToRender={10}
+      maxToRenderPerBatch={8}
+      windowSize={7}
       ListEmptyComponent={
         <View style={styles.empty}>
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>No events scheduled</Text>
         </View>
       }
-      onEndReached={() => {
-        if (data && page * 20 < data.total) setPage(p => p + 1);
-      }}
+      onEndReached={handleEndReached}
     />
   );
 }

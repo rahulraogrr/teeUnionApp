@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -16,7 +16,7 @@ export default function NewsFeedScreen() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetNewsQuery({ page, limit: 20 });
 
-  const renderArticle = ({ item, index }: { item: NewsArticle; index: number }) => {
+  const renderArticle = useCallback(({ item, index }: { item: NewsArticle; index: number }) => {
     const isFirst = index === 0;
     return (
       <TouchableOpacity
@@ -51,7 +51,11 @@ export default function NewsFeedScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [theme, navigation]);
+
+  const handleEndReached = useCallback(() => {
+    if (data && page * 20 < data.total) setPage(p => p + 1);
+  }, [data, page]);
 
   if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
 
@@ -62,6 +66,9 @@ export default function NewsFeedScreen() {
       keyExtractor={(a) => a.id}
       renderItem={renderArticle}
       contentContainerStyle={styles.list}
+      initialNumToRender={10}
+      maxToRenderPerBatch={8}
+      windowSize={7}
       ListEmptyComponent={
         <View style={styles.empty}>
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -69,9 +76,7 @@ export default function NewsFeedScreen() {
           </Text>
         </View>
       }
-      onEndReached={() => {
-        if (data && page * 20 < data.total) setPage(p => p + 1);
-      }}
+      onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
     />
   );

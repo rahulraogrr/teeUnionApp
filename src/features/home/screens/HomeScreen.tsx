@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Card, useTheme, Badge } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HomeStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store';
 import { useGetMyProfileQuery } from '../../../api/membersApi';
-import { useGetTicketsQuery } from '../../../api/ticketsApi';
+import { useGetTicketsQuery, useGetTicketCountsQuery } from '../../../api/ticketsApi';
 import { useGetUnreadCountQuery } from '../../../api/notificationsApi';
 import { useGetNewsQuery } from '../../../api/newsApi';
 import { useGetEventsQuery } from '../../../api/eventsApi';
@@ -25,17 +25,25 @@ export default function HomeScreen() {
   const { data: profile } = useGetMyProfileQuery();
   // Fetch more tickets on tablet so the 2-col grid has content
   const { data: tickets } = useGetTicketsQuery({ limit: twoColCards ? 6 : 3, page: 1 });
-  // Fetch real open ticket count from API (not derived from the limited recent list)
-  const { data: openTicketsData } = useGetTicketsQuery({ limit: 1, page: 1, status: 'open' });
+  // Use counts endpoint — avoids a separate status-filtered query just for the total
+  const { data: ticketCounts } = useGetTicketCountsQuery();
   const { data: unread } = useGetUnreadCountQuery();
   const { data: news } = useGetNewsQuery({ limit: twoColCards ? 4 : 2, page: 1 });
   const { data: events } = useGetEventsQuery({ limit: twoColCards ? 4 : 2, page: 1 });
 
-  const openTickets = openTicketsData?.total ?? 0;
+  const openTickets = ticketCounts?.open ?? 0;
 
   // Only use two-column layout when there's actually content for both columns
   const hasRightContent = (news?.data.length ?? 0) > 0 || (events?.data.length ?? 0) > 0;
   const twoCol = isTablet && isLandscape && hasRightContent;
+
+  const handleBellPress = useCallback(() => {
+    navigation.navigate('Notifications');
+  }, [navigation]);
+
+  const handleRaiseTicket = useCallback(() => {
+    navigation.getParent()?.navigate('TicketsTab', { screen: 'CreateTicket' });
+  }, [navigation]);
 
   return (
     <ScrollView
@@ -62,7 +70,7 @@ export default function HomeScreen() {
                   {profile?.designation?.name ?? ''}{profile?.employer?.shortName ? ` · ${profile.employer.shortName}` : ''}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.bellBtn}>
+              <TouchableOpacity onPress={handleBellPress} style={styles.bellBtn}>
                 <Icon name="bell-outline" size={26} color="#fff" />
                 {(unread?.count ?? 0) > 0 && (
                   <Badge style={styles.badge}>{unread!.count}</Badge>
@@ -91,7 +99,7 @@ export default function HomeScreen() {
           {/* Raise Ticket CTA */}
           <TouchableOpacity
             style={[styles.raiseTicketBtn, { backgroundColor: theme.colors.primary }]}
-            onPress={() => navigation.getParent()?.navigate('TicketsTab', { screen: 'CreateTicket' })}
+            onPress={handleRaiseTicket}
             activeOpacity={0.85}
           >
             <Icon name="ticket-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
@@ -177,9 +185,9 @@ export default function HomeScreen() {
                             <Text variant="bodyMedium" numberOfLines={1} style={{ fontWeight: '600' }}>
                               {event.titleEn}
                             </Text>
-                            {event.venue && (
+                            {event.location && (
                               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                                📍 {event.venue}
+                                📍 {event.location}
                               </Text>
                             )}
                           </View>
@@ -200,8 +208,8 @@ export default function HomeScreen() {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-function StatChip({ icon, label, value }: { icon: string; label: string; value: string }) {
+// ─── Sub-components (memoized) ────────────────────────────────────────────────
+const StatChip = React.memo(function StatChip({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <View style={styles.statChip}>
       <Icon name={icon} size={20} color="rgba(255,255,255,0.9)" />
@@ -209,28 +217,31 @@ function StatChip({ icon, label, value }: { icon: string; label: string; value: 
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
-}
+});
 
-function StatusDot({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    open: '#1565C0', in_progress: '#FF6F00', escalated: '#6A1B9A',
-    resolved: '#757575', closed: '#757575',
-  };
-  return <View style={[styles.dot, { backgroundColor: colors[status] ?? '#ccc' }]} />;
-}
+const STATUS_DOT_COLORS: Record<string, string> = {
+  open: '#1565C0', in_progress: '#FF6F00', escalated: '#6A1B9A',
+  resolved: '#757575', closed: '#757575',
+};
 
-function PriorityChip({ priority }: { priority: string }) {
-  const colors: Record<string, string> = {
-    standard: '#4CAF50', urgent: '#FF9800', critical: '#B71C1C',
-  };
+const StatusDot = React.memo(function StatusDot({ status }: { status: string }) {
+  return <View style={[styles.dot, { backgroundColor: STATUS_DOT_COLORS[status] ?? '#ccc' }]} />;
+});
+
+const PRIORITY_COLORS: Record<string, string> = {
+  standard: '#4CAF50', urgent: '#FF9800', critical: '#B71C1C',
+};
+
+const PriorityChip = React.memo(function PriorityChip({ priority }: { priority: string }) {
+  const color = PRIORITY_COLORS[priority] ?? '#ccc';
   return (
-    <View style={[styles.priorityChip, { backgroundColor: (colors[priority] ?? '#ccc') + '20' }]}>
-      <Text style={{ fontSize: 10, fontWeight: '700', color: colors[priority] ?? '#ccc' }}>
+    <View style={[styles.priorityChip, { backgroundColor: color + '20' }]}>
+      <Text style={{ fontSize: 10, fontWeight: '700', color }}>
         {priority}
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

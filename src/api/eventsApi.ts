@@ -6,6 +6,7 @@ export const eventsApi = createApi({
   reducerPath: 'eventsApi',
   baseQuery: baseQueryWithReauth,
   tagTypes: ['Event'],
+  keepUnusedDataFor: 600, // 10 minutes — events change infrequently
   endpoints: (builder) => ({
     getEvents: builder.query<PaginatedResponse<UnionEvent>, { page?: number; limit?: number }>({
       query: (params) => ({ url: '/events', params }),

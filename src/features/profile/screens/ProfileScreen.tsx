@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, useTheme, Card, Button, ActivityIndicator, Avatar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -31,7 +31,7 @@ export default function ProfileScreen() {
 
   const sideBySide = isTablet && isLandscape;
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     tokenStorage.clearAll();
     dispatch(membersApi.util.resetApiState());
     dispatch(authApi.util.resetApiState());
@@ -40,16 +40,20 @@ export default function ProfileScreen() {
     dispatch(eventsApi.util.resetApiState());
     dispatch(notificationsApi.util.resetApiState());
     dispatch(logout());
-  };
+  }, [dispatch]);
 
-  const handleUnlinkTelegram = async () => {
+  const handleUnlinkTelegram = useCallback(async () => {
     try {
       await unlinkTelegram().unwrap();
       Toast.show({ type: 'success', text1: 'Telegram unlinked successfully' });
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to unlink Telegram' });
     }
-  };
+  }, [unlinkTelegram]);
+
+  const handleEditProfile = useCallback(() => {
+    navigation.navigate('EditProfile');
+  }, [navigation]);
 
   if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
 
@@ -91,7 +95,7 @@ export default function ProfileScreen() {
                     title="Personal Details"
                     titleVariant="titleSmall"
                     right={(p) => (
-                      <Button {...p} compact onPress={() => navigation.navigate('EditProfile')}>Edit</Button>
+                      <Button {...p} compact onPress={handleEditProfile}>Edit</Button>
                     )}
                   />
                   <Card.Content>
@@ -132,7 +136,7 @@ export default function ProfileScreen() {
                   title="Personal Details"
                   titleVariant="titleSmall"
                   right={(p) => (
-                    <Button {...p} compact onPress={() => navigation.navigate('EditProfile')}>Edit</Button>
+                    <Button {...p} compact onPress={handleEditProfile}>Edit</Button>
                   )}
                 />
                 <Card.Content>
@@ -171,8 +175,8 @@ export default function ProfileScreen() {
   );
 }
 
-// ─── Telegram card extracted as shared component ──────────────────────────────
-function TelegramCard({ telegramStatus, linkToken, unlinking, onUnlink, theme }: any) {
+// ─── Telegram card (memoized) ─────────────────────────────────────────────────
+const TelegramCard = React.memo(function TelegramCard({ telegramStatus, linkToken, unlinking, onUnlink, theme }: any) {
   return (
     <Card style={styles.card} mode="elevated">
       <Card.Title title="Telegram Notifications" titleVariant="titleSmall" />
@@ -221,9 +225,10 @@ function TelegramCard({ telegramStatus, linkToken, unlinking, onUnlink, theme }:
       </Card.Content>
     </Card>
   );
-}
+});
 
-function InfoRow({ icon, label, value, theme }: any) {
+// ─── InfoRow (memoized) ───────────────────────────────────────────────────────
+const InfoRow = React.memo(function InfoRow({ icon, label, value, theme }: any) {
   return (
     <View style={styles.infoRow}>
       <Icon name={icon} size={18} color={theme.colors.onSurfaceVariant} style={{ width: 24 }} />
@@ -233,7 +238,7 @@ function InfoRow({ icon, label, value, theme }: any) {
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

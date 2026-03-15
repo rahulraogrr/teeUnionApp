@@ -25,7 +25,7 @@ export default function EditProfileScreen() {
     resolver: zodResolver(schema),
     defaultValues: {
       mobileNo: profile?.mobileNo ?? '',
-      maritalStatus: profile?.maritalStatus,
+      maritalStatus: profile?.maritalStatus?.toLowerCase() as FormData['maritalStatus'],
     },
   });
 

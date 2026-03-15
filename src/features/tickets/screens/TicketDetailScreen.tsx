@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, ScrollView, StyleSheet, TextInput as RNTextInput, Modal,
   TouchableOpacity, TouchableWithoutFeedback,
@@ -63,14 +63,14 @@ interface Ticket {
 }
 
 // ─── MetaBadge ────────────────────────────────────────────────────────────────
-function MetaBadge({ label, value, color }: { label: string; value: string; color: string }) {
+const MetaBadge = React.memo(function MetaBadge({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <View style={[styles.metaBadge, { backgroundColor: color + '15', borderColor: color + '40', borderWidth: 1 }]}>
       <Text style={{ fontSize: 10, color, fontWeight: '700' }}>{label.toUpperCase()}</Text>
       <Text style={{ fontSize: 13, color, fontWeight: '600', marginTop: 2 }}>{value}</Text>
     </View>
   );
-}
+});
 
 // ─── StatusChangeModal ────────────────────────────────────────────────────────
 interface StatusChangeModalProps {
@@ -88,7 +88,7 @@ function StatusChangeModal({ visible, currentStatus, ticketId, onClose }: Status
 
   const nextOptions = NEXT_STATUSES[currentStatus] ?? [];
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedStatus) return;
     try {
       await updateStatus({ ticketId, status: selectedStatus, notes: notes.trim() || undefined }).unwrap();
@@ -99,7 +99,7 @@ function StatusChangeModal({ visible, currentStatus, ticketId, onClose }: Status
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to update status' });
     }
-  };
+  }, [selectedStatus, notes, ticketId, updateStatus, onClose]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -195,11 +195,10 @@ interface DetailPanelProps {
   onOpenStatusModal: () => void;
 }
 
-function DetailPanel({
+const DetailPanel = React.memo(function DetailPanel({
   ticket, sideBySide, canChangeStatus,
   primaryColor, secondaryColor, onSurfaceVariantColor, onOpenStatusModal,
 }: DetailPanelProps) {
-  const theme = useTheme();
   const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < new Date()
     && ticket.status !== 'resolved' && ticket.status !== 'closed';
 
@@ -259,7 +258,7 @@ function DetailPanel({
       {!sideBySide && <Divider style={{ marginVertical: 16 }} />}
     </View>
   );
-}
+});
 
 // ─── CommentsPanel ────────────────────────────────────────────────────────────
 interface CommentsPanelProps {
@@ -279,12 +278,11 @@ interface CommentsPanelProps {
   primaryColor: string;
 }
 
-function CommentsPanel({
+const CommentsPanel = React.memo(function CommentsPanel({
   ticket, sideBySide, userRole, comment, isInternal,
   onChangeComment, onToggleInternal, onPost, posting,
   outlineColor, surfaceColor, onSurfaceColor, onSurfaceVariantColor, primaryColor,
 }: CommentsPanelProps) {
-  const theme = useTheme();
   const canComment   = ticket.status !== 'closed';
   const canInternal  = userRole !== 'member';
 
@@ -384,7 +382,7 @@ function CommentsPanel({
       )}
     </View>
   );
-}
+});
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function TicketDetailScreen() {
@@ -403,7 +401,7 @@ export default function TicketDetailScreen() {
 
   const sideBySide = isTablet && isLandscape;
 
-  const handleAddComment = async () => {
+  const handleAddComment = useCallback(async () => {
     const trimmed = comment.trim();
     if (!trimmed) return;
     if (trimmed.length < 5) {
@@ -418,26 +416,27 @@ export default function TicketDetailScreen() {
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to add comment' });
     }
-  };
+  }, [comment, isInternal, params.ticketId, addComment]);
 
-  if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
-  if (!ticket) return null;
+  const handleOpenStatusModal = useCallback(() => setStatusModalVisible(true), []);
+  const handleCloseStatusModal = useCallback(() => setStatusModalVisible(false), []);
 
-  const statusColor = STATUS_COLORS[ticket.status] ?? '#ccc';
-  const statusLabel = STATUS_LABEL[ticket.status] ?? ticket.status;
+  // Memoize derived values to avoid re-computing on every render
+  const statusColor = useMemo(() => STATUS_COLORS[ticket?.status ?? ''] ?? '#ccc', [ticket?.status]);
+  const statusLabel = useMemo(() => STATUS_LABEL[ticket?.status ?? ''] ?? ticket?.status ?? '', [ticket?.status]);
 
-  const detailProps = {
-    ticket,
+  const detailProps = useMemo(() => ({
+    ticket: ticket!,
     sideBySide,
     canChangeStatus,
     primaryColor: theme.colors.primary,
     secondaryColor: theme.colors.secondary,
     onSurfaceVariantColor: theme.colors.onSurfaceVariant,
-    onOpenStatusModal: () => setStatusModalVisible(true),
-  };
+    onOpenStatusModal: handleOpenStatusModal,
+  }), [ticket, sideBySide, canChangeStatus, theme, handleOpenStatusModal]);
 
-  const commentsProps = {
-    ticket,
+  const commentsProps = useMemo(() => ({
+    ticket: ticket!,
     sideBySide,
     userRole,
     comment,
@@ -451,7 +450,10 @@ export default function TicketDetailScreen() {
     onSurfaceColor: theme.colors.onSurface,
     onSurfaceVariantColor: theme.colors.onSurfaceVariant,
     primaryColor: theme.colors.primary,
-  };
+  }), [ticket, sideBySide, userRole, comment, isInternal, handleAddComment, adding, theme]);
+
+  if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
+  if (!ticket) return null;
 
   return (
     <>
@@ -488,7 +490,7 @@ export default function TicketDetailScreen() {
         visible={statusModalVisible}
         currentStatus={ticket.status}
         ticketId={ticket.id}
-        onClose={() => setStatusModalVisible(false)}
+        onClose={handleCloseStatusModal}
       />
     </>
   );

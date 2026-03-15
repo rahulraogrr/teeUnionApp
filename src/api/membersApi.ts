@@ -6,6 +6,7 @@ export const membersApi = createApi({
   reducerPath: 'membersApi',
   baseQuery: baseQueryWithReauth,
   tagTypes: ['Member'],
+  keepUnusedDataFor: 300, // 5 minutes
   endpoints: (builder) => ({
     getMyProfile: builder.query<Member, void>({
       query: () => '/members/me',

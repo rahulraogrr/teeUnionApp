@@ -25,6 +25,7 @@ export interface Member {
   permanentAddress?: Record<string, string>;
   createdAt: string;
   // relations (as returned by the API)
+  union?: { id: string; name: string; shortName: string };
   designation?: { id: string; name: string };
   district?: { id: string; name: string };
   employer?: { id: string; name: string; shortName: string };
