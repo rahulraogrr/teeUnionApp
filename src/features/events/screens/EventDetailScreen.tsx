@@ -46,13 +46,13 @@ export default function EventDetailScreen() {
 
       <View style={styles.body}>
         {/* Info Cards */}
-        {event.venue && (
+        {event.location && (
           <Card style={styles.infoCard} mode="elevated">
             <Card.Content style={styles.infoRow}>
               <Text style={{ fontSize: 20 }}>📍</Text>
               <View>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Venue</Text>
-                <Text variant="bodyLarge" style={{ fontWeight: '600' }}>{event.venue}</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: '600' }}>{event.location}</Text>
               </View>
             </Card.Content>
           </Card>

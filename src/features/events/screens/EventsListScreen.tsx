@@ -55,9 +55,9 @@ export default function EventsListScreen() {
                 {item.titleTe}
               </Text>
             )}
-            {item.venue && (
+            {item.location && (
               <Text variant="bodySmall" style={{ color: theme.colors.secondary, marginTop: 6, fontWeight: '500' }}>
-                📍 {item.venue}
+                📍 {item.location}
               </Text>
             )}
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>

@@ -77,7 +77,7 @@ export interface UnionEvent {
   titleEn: string;
   titleTe?: string;
   descriptionEn?: string;
-  venue?: string;
+  location?: string;
   eventDate: string;
   published: boolean;
   districtId?: string;
