@@ -40,8 +40,13 @@ export interface Ticket {
   description: string;
   status: TicketStatus;
   priority: TicketPriority;
-  categoryId: string;
+  categoryId?: string;
   category?: { id: string; name: string };
+  assignedRepId?: string;
+  assignedRep?: { id: string; employeeId: string };
+  districtId?: string;
+  workUnitId?: string;
+  slaDeadline?: string;
   createdAt: string;
   updatedAt: string;
   comments?: TicketComment[];

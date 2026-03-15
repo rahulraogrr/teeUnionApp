@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TicketsStackParamList } from '../../../navigation/types';
 import { useGetTicketsQuery } from '../../../api/ticketsApi';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { useAppSelector } from '../../../store';
 import { Ticket } from '../../../types';
 import dayjs from 'dayjs';
 
@@ -29,6 +30,8 @@ export default function TicketsListScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteParams>();
   const { isTablet, twoColCards, contentWidth, hPad } = useResponsive();
+  const userRole = useAppSelector((s) => s.auth.user?.role ?? 'member');
+  const isMember = userRole === 'member';
 
   const [selectedStatus, setSelectedStatus] = useState(route.params?.initialStatus ?? 'ALL');
   const [page, setPage] = useState(1);
@@ -147,12 +150,14 @@ export default function TicketsListScreen() {
         />
       )}
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color="#fff"
-        onPress={() => navigation.navigate('CreateTicket')}
-      />
+      {isMember && (
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          color="#fff"
+          onPress={() => navigation.navigate('CreateTicket')}
+        />
+      )}
     </View>
   );
 }

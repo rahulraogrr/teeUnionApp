@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { TicketsStackParamList } from '../../../navigation/types';
 import { useGetTicketsQuery } from '../../../api/ticketsApi';
+import { useAppSelector } from '../../../store';
 
 type NavProp = NativeStackNavigationProp<TicketsStackParamList, 'TicketsHome'>;
 
@@ -22,6 +23,8 @@ type TileKey = typeof STATUS_TILES[number]['key'];
 export default function TicketsHomeScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavProp>();
+  const userRole = useAppSelector((s) => s.auth.user?.role ?? 'member');
+  const isMember = userRole === 'member';
 
   // One query per status (limit:1 — only need 'total')
   const { data: openData,       isLoading: l1 } = useGetTicketsQuery({ page: 1, limit: 1, status: 'OPEN' });
@@ -72,19 +75,21 @@ export default function TicketsHomeScreen() {
 
       {isLoading && <ActivityIndicator style={{ marginTop: 4 }} />}
 
-      {/* Raise a Ticket CTA */}
-      <TouchableOpacity
-        style={[styles.raiseBtn, { backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.navigate('CreateTicket')}
-        activeOpacity={0.85}
-      >
-        <Icon name="plus-circle-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
-        <Text style={styles.raiseBtnText}>Raise a Ticket</Text>
-        <Icon name="chevron-right" size={20} color="rgba(255,255,255,0.7)" style={{ marginLeft: 'auto' }} />
-      </TouchableOpacity>
+      {/* Raise a Ticket CTA — members only */}
+      {isMember && (
+        <TouchableOpacity
+          style={[styles.raiseBtn, { backgroundColor: theme.colors.primary }]}
+          onPress={() => navigation.navigate('CreateTicket')}
+          activeOpacity={0.85}
+        >
+          <Icon name="plus-circle-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
+          <Text style={styles.raiseBtnText}>Raise a Ticket</Text>
+          <Icon name="chevron-right" size={20} color="rgba(255,255,255,0.7)" style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+      )}
 
       <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
-        Tap a status to view those tickets
+        {isMember ? 'Tap a status to view those tickets' : 'Tap a status to view assigned tickets'}
       </Text>
     </ScrollView>
   );
