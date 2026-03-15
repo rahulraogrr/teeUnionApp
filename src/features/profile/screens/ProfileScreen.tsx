@@ -53,7 +53,7 @@ export default function ProfileScreen() {
 
   if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
 
-  const initials = profile?.fullName?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() ?? 'M';
+  const initials = [profile?.firstName?.[0], profile?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || 'M';
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -65,7 +65,7 @@ export default function ProfileScreen() {
           style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
         />
         <Text variant={isTablet ? 'headlineMedium' : 'headlineSmall'} style={styles.name}>
-          {profile?.fullName ?? '—'}
+          {[profile?.firstName, profile?.middleName, profile?.lastName].filter(Boolean).join(' ') || '—'}
         </Text>
         <Text variant="bodyMedium" style={styles.empId}>
           Employee ID: {profile?.user?.employeeId}

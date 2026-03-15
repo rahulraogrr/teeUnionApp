@@ -16,7 +16,9 @@ export interface AuthUser {
 // ─── Member ──────────────────────────────────────────────────────────────────
 export interface Member {
   id: string;
-  fullName: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   mobileNo?: string;
   maritalStatus?: 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
   currentAddress?: Record<string, string>;
@@ -57,7 +59,7 @@ export interface TicketComment {
   comment: string;
   isInternal: boolean;
   createdAt: string;
-  author?: { fullName: string };
+  author?: { firstName: string; middleName?: string; lastName: string };
 }
 
 // ─── News ────────────────────────────────────────────────────────────────────

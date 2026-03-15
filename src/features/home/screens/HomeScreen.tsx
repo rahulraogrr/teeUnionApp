@@ -56,7 +56,7 @@ export default function HomeScreen() {
               <View style={{ flex: 1 }}>
                 <Text variant="bodySmall" style={styles.greeting}>Good day,</Text>
                 <Text variant={isTablet ? 'headlineSmall' : 'titleLarge'} style={styles.userName}>
-                  {profile?.fullName ?? profile?.user?.employeeId ?? user?.employeeId ?? 'Member'}
+                  {[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || profile?.user?.employeeId || user?.employeeId || 'Member'}
                 </Text>
                 <Text variant="bodySmall" style={styles.designation}>
                   {profile?.designation?.name ?? ''}{profile?.employer?.shortName ? ` · ${profile.employer.shortName}` : ''}

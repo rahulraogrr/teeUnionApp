@@ -45,7 +45,7 @@ interface Comment {
   comment: string;
   isInternal?: boolean;
   createdAt: string;
-  author?: { fullName?: string };
+  author?: { firstName?: string; middleName?: string; lastName?: string };
   user?: { employeeId: string; role: string };
 }
 
@@ -312,7 +312,7 @@ function CommentsPanel({
               <View style={styles.commentHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text variant="bodySmall" style={{ fontWeight: '600', color: primaryColor }}>
-                    {c.author?.fullName ?? c.user?.employeeId ?? 'Member'}
+                    {[c.author?.firstName, c.author?.lastName].filter(Boolean).join(' ') || c.user?.employeeId || 'Member'}
                   </Text>
                   {isInternalComment && (
                     <View style={styles.internalBadge}>
