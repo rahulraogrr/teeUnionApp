@@ -8,12 +8,12 @@ import { ProfileStackParamList } from '../../../navigation/types';
 import { membersApi, useGetMyProfileQuery, useGetTelegramStatusQuery, useUnlinkTelegramMutation, useGetTelegramLinkTokenQuery } from '../../../api/membersApi';
 import { useAppDispatch } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
-import { authApi } from '../../../api/authApi';
+import { authApi, useLogoutApiMutation } from '../../../api/authApi';
 import { ticketsApi } from '../../../api/ticketsApi';
 import { newsApi } from '../../../api/newsApi';
 import { eventsApi } from '../../../api/eventsApi';
 import { notificationsApi } from '../../../api/notificationsApi';
-import { tokenStorage } from '../../../utils/storage';
+import { clearAllCredentials } from '../../../utils/storage';
 import { useResponsive } from '../../../hooks/useResponsive';
 import Toast from 'react-native-toast-message';
 
@@ -27,12 +27,16 @@ export default function ProfileScreen() {
   const { data: telegramStatus } = useGetTelegramStatusQuery();
   const { data: linkToken } = useGetTelegramLinkTokenQuery();
   const [unlinkTelegram, { isLoading: unlinking }] = useUnlinkTelegramMutation();
+  const [logoutApi] = useLogoutApiMutation();
   const { isTablet, isLandscape, contentWidth, hPad } = useResponsive();
 
   const sideBySide = isTablet && isLandscape;
 
-  const handleLogout = useCallback(() => {
-    tokenStorage.clearAll();
+  const handleLogout = useCallback(async () => {
+    // OWASP A07: revoke token server-side first (adds to Redis blacklist)
+    try { await logoutApi().unwrap(); } catch { /* proceed even if server call fails */ }
+    // OWASP M2: clear JWT from Keychain + session data from MMKV
+    await clearAllCredentials();
     dispatch(membersApi.util.resetApiState());
     dispatch(authApi.util.resetApiState());
     dispatch(ticketsApi.util.resetApiState());
@@ -40,7 +44,7 @@ export default function ProfileScreen() {
     dispatch(eventsApi.util.resetApiState());
     dispatch(notificationsApi.util.resetApiState());
     dispatch(logout());
-  }, [dispatch]);
+  }, [dispatch, logoutApi]);
 
   const handleUnlinkTelegram = useCallback(async () => {
     try {

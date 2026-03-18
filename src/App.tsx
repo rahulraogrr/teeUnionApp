@@ -9,7 +9,7 @@ import * as Sentry from '@sentry/react-native';
 import { store } from './store';
 import { AppLightTheme } from './theme';
 import RootNavigator from './navigation/RootNavigator';
-import { tokenStorage } from './utils/storage';
+import { getToken, sessionStorage } from './utils/storage';
 import { setCredentials } from './store/slices/authSlice';
 import { initialiseSentry } from './utils/sentry';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -17,22 +17,31 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 // Initialize crash reporting as early as possible
 initialiseSentry();
 
-// Bootstrap: rehydrate auth state from MMKV on cold start
+/**
+ * Bootstrap: rehydrate auth state on cold start.
+ *
+ * SECURITY (OWASP M2): Token is now read from Keychain/Keystore (async),
+ * not from plain MMKV. Non-sensitive session data (role, employeeId) is
+ * still read synchronously from MMKV.
+ */
 function AppBootstrap() {
   useEffect(() => {
-    const token = tokenStorage.getToken();
-    const user = tokenStorage.getUser();
-    if (token && user.userId !== undefined) {
-      store.dispatch(setCredentials({
-        token,
-        user: {
-          userId: user.userId ?? '',
-          role: user.role ?? '',
-          employeeId: user.employeeId ?? '',
-          requiresPinChange: user.requiresPinChange,
-        },
-      }));
-    }
+    (async () => {
+      const token = await getToken();          // Keychain — encrypted
+      const user  = sessionStorage.getUser(); // MMKV — non-sensitive
+
+      if (token && user.userId !== undefined) {
+        store.dispatch(setCredentials({
+          token,
+          user: {
+            userId:           user.userId ?? '',
+            role:             user.role ?? '',
+            employeeId:       user.employeeId ?? '',
+            requiresPinChange: user.requiresPinChange,
+          },
+        }));
+      }
+    })();
   }, []);
 
   return (

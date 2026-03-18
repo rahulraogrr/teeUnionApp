@@ -16,7 +16,7 @@ import { AuthStackParamList } from '../../../navigation/types';
 import { useLoginMutation } from '../../../api/authApi';
 import { useAppDispatch } from '../../../store';
 import { setCredentials } from '../../../store/slices/authSlice';
-import { tokenStorage } from '../../../utils/storage';
+import { setToken, sessionStorage } from '../../../utils/storage';
 import { useResponsive } from '../../../hooks/useResponsive';
 import Toast from 'react-native-toast-message';
 
@@ -45,8 +45,9 @@ export default function LoginScreen({ navigation }: Props) {
   const onSubmit = async (data: FormData) => {
     try {
       const result = await login(data).unwrap();
-      tokenStorage.setToken(result.accessToken);
-      tokenStorage.setUser({
+      // OWASP M2: token stored in Keychain/Keystore (encrypted), not plain MMKV
+      await setToken(result.accessToken);
+      sessionStorage.setUser({
         userId: '',
         role: result.role,
         employeeId: result.employeeId,

@@ -15,7 +15,16 @@ export const authApi = createApi({
     getProfile: builder.query<any, void>({
       query: () => '/auth/me',
     }),
+    // OWASP A07: server-side token revocation — blacklists JWT in Redis
+    logoutApi: builder.mutation<{ message: string }, void>({
+      query: () => ({ url: '/auth/logout', method: 'POST' }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useChangePinMutation, useGetProfileQuery } = authApi;
+export const {
+  useLoginMutation,
+  useChangePinMutation,
+  useGetProfileQuery,
+  useLogoutApiMutation,
+} = authApi;
