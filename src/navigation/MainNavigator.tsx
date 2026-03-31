@@ -5,8 +5,7 @@ import { MainTabParamList } from './types';
 import { useGetUnreadCountQuery } from '../api/notificationsApi';
 import HomeNavigator from './HomeNavigator';
 import TicketsNavigator from './TicketsNavigator';
-import NewsNavigator from './NewsNavigator';
-import EventsNavigator from './EventsNavigator';
+import UpdatesNavigator from './UpdatesNavigator';
 import ProfileNavigator from './ProfileNavigator';
 import { useTheme } from 'react-native-paper';
 
@@ -16,8 +15,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TAB_ICONS: Record<string, string> = {
   HomeTab:    'home',
   TicketsTab: 'ticket-outline',
-  NewsTab:    'newspaper',
-  EventsTab:  'calendar-month',
+  UpdatesTab: 'newspaper-variant-outline',
   ProfileTab: 'account-circle-outline',
 };
 
@@ -55,10 +53,9 @@ export default function MainNavigator() {
         component={HomeNavigator}
         options={{ title: 'Home', tabBarBadge: unreadData?.count ? unreadData.count : undefined }}
       />
-      <Tab.Screen name="TicketsTab" component={TicketsNavigator} options={{ title: 'Tickets' }} />
-      <Tab.Screen name="NewsTab"    component={NewsNavigator}    options={{ title: 'News' }} />
-      <Tab.Screen name="EventsTab"  component={EventsNavigator}  options={{ title: 'Events' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileNavigator} options={{ title: 'Profile' }} />
+      <Tab.Screen name="TicketsTab"  component={TicketsNavigator}  options={{ title: 'Tickets' }} />
+      <Tab.Screen name="UpdatesTab"  component={UpdatesNavigator}  options={{ title: 'Updates' }} />
+      <Tab.Screen name="ProfileTab"  component={ProfileNavigator}  options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 }

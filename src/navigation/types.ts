@@ -11,8 +11,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   HomeTab: undefined;
   TicketsTab: undefined;
-  NewsTab: undefined;
-  EventsTab: undefined;
+  UpdatesTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -39,6 +38,13 @@ export type NewsStackParamList = {
 // ─── Events Stack ────────────────────────────────────────────────────────────
 export type EventsStackParamList = {
   EventsList: undefined;
+  EventDetail: { eventId: string; title: string };
+};
+
+// ─── Updates Stack (News + Events combined) ───────────────────────────────────
+export type UpdatesStackParamList = {
+  UpdatesFeed: undefined;
+  NewsDetail: { articleId: string; title: string };
   EventDetail: { eventId: string; title: string };
 };
 
