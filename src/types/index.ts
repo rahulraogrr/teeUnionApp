@@ -1,16 +1,29 @@
 // ─── Auth ────────────────────────────────────────────────────────────────────
+export type UserRole = 'super_admin' | 'admin' | 'zonal_officer' | 'rep' | 'member';
+
 export interface LoginResponse {
   accessToken: string;
-  role: 'MEMBER' | 'ADMIN' | 'DISTRICT_ADMIN';
+  roles: UserRole[];
   employeeId: string;
   requiresPinChange: boolean;
 }
 
 export interface AuthUser {
   userId: string;
-  role: string;
+  roles: UserRole[];
   employeeId: string;
   requiresPinChange: boolean;
+}
+
+/** Returns true if the user holds at least one of the given roles */
+export function hasRole(user: AuthUser | null, ...check: UserRole[]): boolean {
+  if (!user) return false;
+  return check.some(r => user.roles.includes(r));
+}
+
+/** Returns true if the user can manage content (create/edit/delete events, news) */
+export function canManageContent(user: AuthUser | null): boolean {
+  return hasRole(user, 'admin', 'super_admin', 'zonal_officer');
 }
 
 // ─── Member ──────────────────────────────────────────────────────────────────
@@ -30,7 +43,7 @@ export interface Member {
   district?: { id: string; name: string };
   employer?: { id: string; name: string; shortName: string };
   workUnit?: { id: string; name: string; unitType: string };
-  user?: { employeeId: string; email: string; role: string; lastLoginAt: string };
+  user?: { employeeId: string; email: string; roles: UserRole[]; lastLoginAt: string };
 }
 
 // ─── Ticket ──────────────────────────────────────────────────────────────────

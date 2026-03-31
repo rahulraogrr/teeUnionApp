@@ -34,9 +34,9 @@ function AppBootstrap() {
         store.dispatch(setCredentials({
           token,
           user: {
-            userId:           user.userId ?? '',
-            role:             user.role ?? '',
-            employeeId:       user.employeeId ?? '',
+            userId:            user.userId ?? '',
+            roles:             user.roles ?? [],
+            employeeId:        user.employeeId ?? '',
             requiresPinChange: user.requiresPinChange,
           },
         }));

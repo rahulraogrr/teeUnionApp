@@ -17,7 +17,7 @@ import * as Keychain from 'react-native-keychain';
 export const storage = new MMKV({ id: 'tee-union-storage' });
 
 const MMKV_KEYS = {
-  USER_ROLE:           'userRole',
+  USER_ROLES:          'userRoles',        // JSON array e.g. '["admin","rep"]'
   USER_ID:             'userId',
   EMPLOYEE_ID:         'employeeId',
   REQUIRES_PIN_CHANGE: 'requiresPinChange',
@@ -67,27 +67,30 @@ export async function removeToken(): Promise<void> {
 export const sessionStorage = {
   setUser: (data: {
     userId: string;
-    role: string;
+    roles: string[];
     employeeId: string;
     requiresPinChange: boolean;
   }) => {
     storage.set(MMKV_KEYS.USER_ID,             data.userId);
-    storage.set(MMKV_KEYS.USER_ROLE,           data.role);
+    storage.set(MMKV_KEYS.USER_ROLES,          JSON.stringify(data.roles));
     storage.set(MMKV_KEYS.EMPLOYEE_ID,         data.employeeId);
     storage.set(MMKV_KEYS.REQUIRES_PIN_CHANGE, data.requiresPinChange);
   },
 
-  getUser: () => ({
-    userId:            storage.getString(MMKV_KEYS.USER_ID),
-    role:              storage.getString(MMKV_KEYS.USER_ROLE),
-    employeeId:        storage.getString(MMKV_KEYS.EMPLOYEE_ID),
-    requiresPinChange: storage.getBoolean(MMKV_KEYS.REQUIRES_PIN_CHANGE) ?? false,
-  }),
+  getUser: () => {
+    const rolesRaw = storage.getString(MMKV_KEYS.USER_ROLES);
+    return {
+      userId:            storage.getString(MMKV_KEYS.USER_ID),
+      roles:             rolesRaw ? (JSON.parse(rolesRaw) as string[]) : [],
+      employeeId:        storage.getString(MMKV_KEYS.EMPLOYEE_ID),
+      requiresPinChange: storage.getBoolean(MMKV_KEYS.REQUIRES_PIN_CHANGE) ?? false,
+    };
+  },
 
   /** Clears only non-sensitive MMKV data (token is cleared separately via removeToken) */
   clearSession: () => {
     storage.delete(MMKV_KEYS.USER_ID);
-    storage.delete(MMKV_KEYS.USER_ROLE);
+    storage.delete(MMKV_KEYS.USER_ROLES);
     storage.delete(MMKV_KEYS.EMPLOYEE_ID);
     storage.delete(MMKV_KEYS.REQUIRES_PIN_CHANGE);
   },

@@ -49,7 +49,7 @@ export default function LoginScreen({ navigation }: Props) {
       await setToken(result.accessToken);
       sessionStorage.setUser({
         userId: '',
-        role: result.role,
+        roles: result.roles,
         employeeId: result.employeeId,
         requiresPinChange: result.requiresPinChange,
       });
@@ -57,7 +57,7 @@ export default function LoginScreen({ navigation }: Props) {
         token: result.accessToken,
         user: {
           userId: '',
-          role: result.role,
+          roles: result.roles,
           employeeId: result.employeeId,
           requiresPinChange: result.requiresPinChange,
         },
