@@ -10,6 +10,7 @@ import { TicketsStackParamList } from '../../../navigation/types';
 import { useGetTicketByIdQuery, useAddCommentMutation, useUpdateStatusMutation } from '../../../api/ticketsApi';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useAppSelector } from '../../../store';
+import { hasRole } from '../../../types';
 import dayjs from 'dayjs';
 import Toast from 'react-native-toast-message';
 
@@ -264,7 +265,7 @@ const DetailPanel = React.memo(function DetailPanel({
 interface CommentsPanelProps {
   ticket: Ticket;
   sideBySide: boolean;
-  userRole: string;
+  isMember: boolean;
   comment: string;
   isInternal: boolean;
   onChangeComment: (v: string) => void;
@@ -279,12 +280,12 @@ interface CommentsPanelProps {
 }
 
 const CommentsPanel = React.memo(function CommentsPanel({
-  ticket, sideBySide, userRole, comment, isInternal,
+  ticket, sideBySide, isMember, comment, isInternal,
   onChangeComment, onToggleInternal, onPost, posting,
   outlineColor, surfaceColor, onSurfaceColor, onSurfaceVariantColor, primaryColor,
 }: CommentsPanelProps) {
   const canComment   = ticket.status !== 'closed';
-  const canInternal  = userRole !== 'member';
+  const canInternal  = !isMember;
 
   return (
     <View style={{ flex: sideBySide ? 1 : undefined }}>
@@ -392,8 +393,9 @@ export default function TicketDetailScreen() {
   const [isInternal, setIsInternal] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
 
-  const userRole = useAppSelector((s) => s.auth.user?.role ?? 'member');
-  const canChangeStatus = ['rep', 'zonal_officer', 'admin', 'super_admin'].includes(userRole);
+  const user = useAppSelector((s) => s.auth.user);
+  const isMember = !hasRole(user, 'rep', 'zonal_officer', 'admin', 'super_admin');
+  const canChangeStatus = hasRole(user, 'rep', 'zonal_officer', 'admin', 'super_admin');
 
   const { data: ticket, isLoading } = useGetTicketByIdQuery(params.ticketId);
   const [addComment, { isLoading: adding }] = useAddCommentMutation();
@@ -438,7 +440,7 @@ export default function TicketDetailScreen() {
   const commentsProps = useMemo(() => ({
     ticket: ticket!,
     sideBySide,
-    userRole,
+    isMember,
     comment,
     isInternal,
     onChangeComment: setComment,
@@ -450,7 +452,7 @@ export default function TicketDetailScreen() {
     onSurfaceColor: theme.colors.onSurface,
     onSurfaceVariantColor: theme.colors.onSurfaceVariant,
     primaryColor: theme.colors.primary,
-  }), [ticket, sideBySide, userRole, comment, isInternal, handleAddComment, adding, theme]);
+  }), [ticket, sideBySide, isMember, comment, isInternal, handleAddComment, adding, theme]);
 
   if (isLoading) return <ActivityIndicator style={{ flex: 1, marginTop: 48 }} />;
   if (!ticket) return null;

@@ -7,7 +7,7 @@ import { TicketsStackParamList } from '../../../navigation/types';
 import { useGetTicketsQuery } from '../../../api/ticketsApi';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useAppSelector } from '../../../store';
-import { Ticket } from '../../../types';
+import { Ticket, hasRole } from '../../../types';
 import dayjs from 'dayjs';
 
 type NavProp     = NativeStackNavigationProp<TicketsStackParamList, 'TicketsList'>;
@@ -38,8 +38,8 @@ export default function TicketsListScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteParams>();
   const { isTablet, twoColCards, contentWidth, hPad } = useResponsive();
-  const userRole = useAppSelector((s) => s.auth.user?.role ?? 'member');
-  const isMember = userRole === 'member';
+  const user = useAppSelector((s) => s.auth.user);
+  const isMember = !hasRole(user, 'rep', 'zonal_officer', 'admin', 'super_admin');
 
   const [selectedStatus, setSelectedStatus] = useState(route.params?.initialStatus ?? 'ALL');
   const [page, setPage] = useState(1);

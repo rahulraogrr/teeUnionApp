@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { TicketsStackParamList } from '../../../navigation/types';
 import { useGetTicketCountsQuery } from '../../../api/ticketsApi';
 import { useAppSelector } from '../../../store';
+import { hasRole } from '../../../types';
 
 type NavProp = NativeStackNavigationProp<TicketsStackParamList, 'TicketsHome'>;
 
@@ -23,8 +24,8 @@ type TileKey = typeof STATUS_TILES[number]['key'];
 export default function TicketsHomeScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavProp>();
-  const userRole = useAppSelector((s) => s.auth.user?.role ?? 'member');
-  const isMember = userRole === 'member';
+  const user = useAppSelector((s) => s.auth.user);
+  const isMember = !hasRole(user, 'rep', 'zonal_officer', 'admin', 'super_admin');
 
   // Single API call instead of 5 separate calls
   const { data: countsData, isLoading } = useGetTicketCountsQuery();
